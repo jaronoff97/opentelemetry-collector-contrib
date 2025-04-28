@@ -4,11 +4,13 @@
 package metricstarttimeprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstarttimeprocessor"
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstarttimeprocessor/internal/subtractinitial"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstarttimeprocessor/internal/truereset"
 )
 
@@ -29,11 +31,14 @@ func createDefaultConfig() component.Config {
 
 // Validate checks the configuration is valid
 func (cfg *Config) Validate() error {
-	if cfg.Strategy != truereset.Type {
-		return fmt.Errorf("%v is not a valid strategy", cfg.Strategy)
+	switch cfg.Strategy {
+	case truereset.Type:
+	case subtractinitial.Type:
+	default:
+		return fmt.Errorf("%q is not a valid strategy", cfg.Strategy)
 	}
 	if cfg.GCInterval <= 0 {
-		return fmt.Errorf("gc_interval must be positive")
+		return errors.New("gc_interval must be positive")
 	}
 	return nil
 }

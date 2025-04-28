@@ -83,27 +83,27 @@ func createLogsReceiver(_ context.Context, settings receiver.Settings, configura
 	if cfg.ReplayFile {
 		opts = append(opts, fileconsumer.WithNoTracking())
 	}
-	input, err := cfg.Config.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
+	input, err := cfg.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
 		for _, token := range tokens {
 			ctx = obsrecv.StartLogsOp(ctx)
 			var l plog.Logs
 			l, err = logsUnmarshaler.UnmarshalLogs(token)
-			// Appends token.Attributes
-			for i := 0; i < l.ResourceLogs().Len(); i++ {
-				resourceLog := l.ResourceLogs().At(i)
-				for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
-					scopeLog := resourceLog.ScopeLogs().At(j)
-					for k := 0; k < scopeLog.LogRecords().Len(); k++ {
-						LogRecords := scopeLog.LogRecords().At(k)
-						appendToMap(attributes, LogRecords.Attributes())
-					}
-				}
-			}
 			if err != nil {
 				obsrecv.EndLogsOp(ctx, metadata.Type.String(), 0, err)
 			} else {
 				logRecordCount := l.LogRecordCount()
 				if logRecordCount != 0 {
+					// Appends token.Attributes
+					for i := 0; i < l.ResourceLogs().Len(); i++ {
+						resourceLog := l.ResourceLogs().At(i)
+						for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
+							scopeLog := resourceLog.ScopeLogs().At(j)
+							for k := 0; k < scopeLog.LogRecords().Len(); k++ {
+								LogRecords := scopeLog.LogRecords().At(k)
+								appendToMap(attributes, LogRecords.Attributes())
+							}
+						}
+					}
 					err = logs.ConsumeLogs(ctx, l)
 				}
 				obsrecv.EndLogsOp(ctx, metadata.Type.String(), logRecordCount, err)
@@ -133,26 +133,26 @@ func createMetricsReceiver(_ context.Context, settings receiver.Settings, config
 	if cfg.ReplayFile {
 		opts = append(opts, fileconsumer.WithNoTracking())
 	}
-	input, err := cfg.Config.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
+	input, err := cfg.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
 		for _, token := range tokens {
 			ctx = obsrecv.StartMetricsOp(ctx)
 			var m pmetric.Metrics
 			m, err = metricsUnmarshaler.UnmarshalMetrics(token)
-			// Appends token.Attributes
-			for i := 0; i < m.ResourceMetrics().Len(); i++ {
-				resourceMetric := m.ResourceMetrics().At(i)
-				for j := 0; j < resourceMetric.ScopeMetrics().Len(); j++ {
-					ScopeMetric := resourceMetric.ScopeMetrics().At(j)
-					for k := 0; k < ScopeMetric.Metrics().Len(); k++ {
-						metric := ScopeMetric.Metrics().At(k)
-						appendToMap(attributes, metric.Metadata())
-					}
-				}
-			}
 			if err != nil {
 				obsrecv.EndMetricsOp(ctx, metadata.Type.String(), 0, err)
 			} else {
 				if m.ResourceMetrics().Len() != 0 {
+					// Appends token.Attributes
+					for i := 0; i < m.ResourceMetrics().Len(); i++ {
+						resourceMetric := m.ResourceMetrics().At(i)
+						for j := 0; j < resourceMetric.ScopeMetrics().Len(); j++ {
+							ScopeMetric := resourceMetric.ScopeMetrics().At(j)
+							for k := 0; k < ScopeMetric.Metrics().Len(); k++ {
+								metric := ScopeMetric.Metrics().At(k)
+								appendToMap(attributes, metric.Metadata())
+							}
+						}
+					}
 					err = metrics.ConsumeMetrics(ctx, m)
 				}
 				obsrecv.EndMetricsOp(ctx, metadata.Type.String(), m.MetricCount(), err)
@@ -182,26 +182,26 @@ func createTracesReceiver(_ context.Context, settings receiver.Settings, configu
 	if cfg.ReplayFile {
 		opts = append(opts, fileconsumer.WithNoTracking())
 	}
-	input, err := cfg.Config.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
+	input, err := cfg.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, attributes map[string]any, _ int64) error {
 		for _, token := range tokens {
 			ctx = obsrecv.StartTracesOp(ctx)
 			var t ptrace.Traces
 			t, err = tracesUnmarshaler.UnmarshalTraces(token)
-			// Appends token.Attributes
-			for i := 0; i < t.ResourceSpans().Len(); i++ {
-				resourceSpan := t.ResourceSpans().At(i)
-				for j := 0; j < resourceSpan.ScopeSpans().Len(); j++ {
-					scopeSpan := resourceSpan.ScopeSpans().At(j)
-					for k := 0; k < scopeSpan.Spans().Len(); k++ {
-						spans := scopeSpan.Spans().At(k)
-						appendToMap(attributes, spans.Attributes())
-					}
-				}
-			}
 			if err != nil {
 				obsrecv.EndTracesOp(ctx, metadata.Type.String(), 0, err)
 			} else {
 				if t.ResourceSpans().Len() != 0 {
+					// Appends token.Attributes
+					for i := 0; i < t.ResourceSpans().Len(); i++ {
+						resourceSpan := t.ResourceSpans().At(i)
+						for j := 0; j < resourceSpan.ScopeSpans().Len(); j++ {
+							scopeSpan := resourceSpan.ScopeSpans().At(j)
+							for k := 0; k < scopeSpan.Spans().Len(); k++ {
+								spans := scopeSpan.Spans().At(k)
+								appendToMap(attributes, spans.Attributes())
+							}
+						}
+					}
 					err = traces.ConsumeTraces(ctx, t)
 				}
 				obsrecv.EndTracesOp(ctx, metadata.Type.String(), t.SpanCount(), err)
@@ -223,7 +223,7 @@ func createProfilesReceiver(_ context.Context, settings receiver.Settings, confi
 	if cfg.ReplayFile {
 		opts = append(opts, fileconsumer.WithNoTracking())
 	}
-	input, err := cfg.Config.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, _ map[string]any, _ int64) error {
+	input, err := cfg.Build(settings.TelemetrySettings, func(ctx context.Context, tokens [][]byte, _ map[string]any, _ int64) error {
 		for _, token := range tokens {
 			p, _ := profilesUnmarshaler.UnmarshalProfiles(token)
 			// TODO Append token.Attributes

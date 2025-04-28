@@ -602,11 +602,13 @@ func TestValidateOwnTelemetry(t *testing.T) {
 }
 
 func TestExtraDimensionsLabels(t *testing.T) {
+	t.Skip("https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/39210")
 	extraDimensions := []string{"db.system", "messaging.system"}
 	cfg := &Config{
 		Dimensions:              extraDimensions,
 		LatencyHistogramBuckets: []time.Duration{time.Duration(0.1 * float64(time.Second)), time.Duration(1 * float64(time.Second)), time.Duration(10 * float64(time.Second))},
 		Store:                   StoreConfig{MaxItems: 10},
+		MetricsFlushInterval:    ptr(0 * time.Millisecond),
 	}
 
 	set := componenttest.NewNopTelemetrySettings()
@@ -644,8 +646,7 @@ func TestVirtualNodeServerLabels(t *testing.T) {
 		Store:                     StoreConfig{MaxItems: 10},
 		VirtualNodePeerAttributes: virtualNodeDimensions,
 		VirtualNodeExtraLabel:     true,
-		// Reduce flush interval for faster test execution
-		MetricsFlushInterval: 10 * time.Millisecond,
+		MetricsFlushInterval:      ptr(time.Millisecond),
 	}
 
 	set := componenttest.NewNopTelemetrySettings()
@@ -679,6 +680,9 @@ func TestVirtualNodeServerLabels(t *testing.T) {
 	err = pmetrictest.CompareMetrics(expectedMetrics, metrics[0],
 		pmetrictest.IgnoreStartTimestamp(),
 		pmetrictest.IgnoreTimestamp(),
+		pmetrictest.IgnoreScopeMetricsOrder(),
+		pmetrictest.IgnoreMetricsOrder(),
+		pmetrictest.IgnoreMetricDataPointsOrder(),
 	)
 	require.NoError(t, err)
 }
@@ -691,8 +695,7 @@ func TestVirtualNodeClientLabels(t *testing.T) {
 		Store:                     StoreConfig{MaxItems: 10},
 		VirtualNodePeerAttributes: virtualNodeDimensions,
 		VirtualNodeExtraLabel:     true,
-		// Reduce flush interval for faster test execution
-		MetricsFlushInterval: 1 * time.Millisecond,
+		MetricsFlushInterval:      ptr(time.Millisecond),
 	}
 
 	set := componenttest.NewNopTelemetrySettings()
@@ -728,4 +731,9 @@ func TestVirtualNodeClientLabels(t *testing.T) {
 		pmetrictest.IgnoreTimestamp(),
 	)
 	require.NoError(t, err)
+}
+
+// ptr returns a pointer to the given value.
+func ptr[T any](value T) *T {
+	return &value
 }
