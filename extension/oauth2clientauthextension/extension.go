@@ -5,10 +5,12 @@ package oauth2clientauthextension // import "github.com/open-telemetry/opentelem
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/extension/extensionauth"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
@@ -18,7 +20,11 @@ import (
 	grpcOAuth "google.golang.org/grpc/credentials/oauth"
 )
 
-var _ extensionauth.Client = (*clientAuthenticator)(nil)
+var (
+	_ extension.Extension      = (*clientAuthenticator)(nil)
+	_ extensionauth.HTTPClient = (*clientAuthenticator)(nil)
+	_ extensionauth.GRPCClient = (*clientAuthenticator)(nil)
+)
 
 // clientAuthenticator provides implementation for providing client authentication using OAuth2 client credentials
 // workflow for both gRPC and HTTP clients.
@@ -40,7 +46,7 @@ type errorWrappingTokenSource struct {
 var _ oauth2.TokenSource = (*errorWrappingTokenSource)(nil)
 
 // errFailedToGetSecurityToken indicates a problem communicating with OAuth2 server.
-var errFailedToGetSecurityToken = fmt.Errorf("failed to get security token from token endpoint")
+var errFailedToGetSecurityToken = errors.New("failed to get security token from token endpoint")
 
 func newClientAuthenticator(cfg *Config, logger *zap.Logger) (*clientAuthenticator, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
